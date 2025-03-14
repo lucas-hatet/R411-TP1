@@ -27,20 +27,167 @@ class MyApp extends StatelessWidget {
 
 class MyAppState extends ChangeNotifier {
   var current = WordPair.random();
+
+  void getNext() {
+    current = WordPair.random();
+    notifyListeners();
+  }
+
+  var favorites = <WordPair>[];
+
+  void toggleFavorite() {
+    if (favorites.contains(current)) {
+      favorites.remove(current);
+    } else {
+      favorites.add(current);
+    }
+    notifyListeners();
+  }
 }
 
-class MyHomePage extends StatelessWidget {
+class GeneratorPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    var appState = context.watch<MyAppState>();
+    var pair = appState.current;
+
+    IconData icon;
+    if (appState.favorites.contains(pair)) {
+      icon = Icons.favorite;
+    } else {
+      icon = Icons.favorite_border;
+    }
+
+    return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            BigCard(pair: pair),
+            SizedBox(height: 10.0),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+
+                ElevatedButton.icon(
+                  onPressed: () {
+                    appState.toggleFavorite();
+                  },
+                  icon: Icon(icon),
+                  label: Text("J'aime"),
+                ),
+                SizedBox(width: 10),
+
+                ElevatedButton(
+                  onPressed: () {
+                    appState.getNext();
+                  },
+                  child: Text('Suivant'),
+                ),
+              ],
+            ),
+          ],
+        ),
+    );
+  }
+}
+
+class MyHomePage extends StatefulWidget {
+  @override
+  State<MyHomePage> createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  var selectedIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget page;
+    switch (selectedIndex) {
+      case 0:
+        page = GeneratorPage();
+        break;
+      case 1:
+        page = FavoritePage();
+        break;
+      default:
+        throw UnimplementedError('aucun composant pour $selectedIndex');
+    }
+
+    return Scaffold(
+      body: Container(
+        color: Theme.of(context).colorScheme.primaryContainer,
+        child: page,
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: [
+          BottomNavigationBarItem (
+            icon: Icon(Icons.home),
+            label: 'Accueil',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.favorite),
+            label: 'Favoris',
+          ),
+        ],
+        currentIndex: selectedIndex,
+        onTap: (value) {
+          setState(() {
+            selectedIndex = value;
+          });
+        },
+      ),
+    );
+  }
+}
+
+class FavoritePage extends StatelessWidget {
+  
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<MyAppState>();
 
-    return Scaffold(
-      body: Column(
+    return Center(child:
+      Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('Une idée aléatoire : le rugby'),
-          Text(appState.current.asLowerCase),
-        ],
-      ),
+        Expanded(child:
+          ListView(
+            children: [
+              for (var item in appState.favorites)
+                Text(item.asPascalCase),
+            ],
+          ),
+        )]
+      )
     );
+  }
+}
+
+class BigCard extends StatelessWidget {
+  const BigCard({
+    super.key,
+    required this.pair,
+  });
+
+  final WordPair pair;
+
+  @override
+  Widget build(BuildContext context) {
+    var theme = Theme.of(context);
+    var style = theme.textTheme.displayMedium!.copyWith(
+      color: theme.colorScheme.onPrimary,
+    );
+
+    return Card(
+    color: theme.colorScheme.primary,
+    child: Padding(
+      padding: const EdgeInsets.all(20.0),
+      child: Text(
+        pair.asLowerCase,
+        style: style,
+        semanticsLabel: pair.asPascalCase,
+      ),
+    ),
+  );
   }
 }
